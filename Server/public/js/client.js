@@ -1,5 +1,7 @@
 // constants
 var SERVER = "http://localhost:8000";
+var WIDTH = 800;
+var HEIGHT = 600;
 
 // variables
 var canvas; // Canvas DOM element
@@ -20,9 +22,12 @@ function init() {
     map = [];
     remotePlayers = [];
 
-    // Maximise the canvas
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Set canvas size and position
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    canvas.style.position = "absolute";
+    canvas.style.left = "50%";
+    canvas.style.marginLeft = (-WIDTH / 2).toString() + "px";
 
     // Initialise keyboard controls
     keys = new Keys();
@@ -47,9 +52,6 @@ var setEventHandlers = function() {
     window.addEventListener("keydown", onKeydown, false);
     window.addEventListener("keyup", onKeyup, false);
 
-    // Window resize
-    window.addEventListener("resize", onResize, false);
-
     socket.on("connect", onSocketConnected);
     socket.on("disconnect", onSocketDisconnect);
     socket.on("new player", onNewPlayer);
@@ -69,13 +71,6 @@ function onKeyup(e) {
     if (localPlayer) {
         keys.onKeyUp(e);
     };
-};
-
-// Browser window resize
-function onResize(e) {
-    // Maximise the canvas
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
 };
 
 function onSocketConnected() {
