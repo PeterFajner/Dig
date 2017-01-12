@@ -95,11 +95,26 @@ function onNewPlayer(data) {
 };
 
 function onMovePlayer(data) {
+    var movePlayer = playerById(data.id);
 
+    if (!movePlayer) {
+        console.log("Player not found: " + data.id);
+        return;
+    };
+
+    movePlayer.setX(data.x);
+    movePlayer.setY(data.y);
 };
 
 function onRemovePlayer(data) {
+    var removePlayer = playerById(data.id);
 
+    if (!removePlayer) {
+        console.log("Player not found: " + data.id);
+        return;
+    };
+
+    remotePlayers.splice(remotePlayers.indexOf(removePlayer), 1);
 };
 
 
@@ -119,7 +134,9 @@ function animate() {
  ** GAME UPDATE
  **************************************************/
 function update() {
-    localPlayer.update(keys);
+    if (localPlayer.update(keys)) {
+        socket.emit("move player", { x: localPlayer.getX(), y: localPlayer.getY() });
+    };
 };
 
 
@@ -137,4 +154,14 @@ function draw() {
     for (i = 0; i < remotePlayers.length; i++) {
         remotePlayers[i].draw(ctx);
     };
+};
+
+function playerById(id) {
+    var i;
+    for (i = 0; i < remotePlayers.length; i++) {
+        if (remotePlayers[i].id == id)
+            return remotePlayers[i];
+    };
+
+    return false;
 };
