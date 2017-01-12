@@ -2,7 +2,7 @@ var PORT = 8000;
 
 var util = require("util");
 var Server = require("socket.io");
-var Player = require("./Player").Player;
+var Player = require("./public/js/Player").Player;
 
 var io;
 var players;
@@ -23,7 +23,7 @@ function onSocketConnection(client) {
     util.log("New player has connected: " + client.id);
     client.on("disconnect", onClientDisconnect);
     client.on("new player", onNewPlayer);
-    client.on("move player", onMovePlayer);
+    client.on("key press", onKeyPress);
 };
 
 function onClientDisconnect() {
@@ -59,18 +59,17 @@ function onNewPlayer(data) {
     players.push(newPlayer);
 };
 
-function onMovePlayer(data) {
-    var movePlayer = playerById(this.id);
+function onKeyPress(data) {
+    var playerToMove = playerById(this.id);
 
-    if (!movePlayer) {
+    if (!playerToMove) {
         util.log("Player not found: " + this.id);
         return;
     };
 
-    movePlayer.setX(data.x);
-    movePlayer.setY(data.y);
+    playerToMove.update(data.keys);
 
-    this.broadcast.emit("move player", { id: movePlayer.id, x: movePlayer.getX(), y: movePlayer.getY() });
+    this.broadcast.emit("move player", { id: playerToMove.id, x: playerToMove.getX(), y: playerToMove.getY() });
 };
 
 function playerById(id) {
@@ -88,6 +87,10 @@ function stop() {
 }
 
 function save() {
+
+}
+
+function resendPositions() {
 
 }
 

@@ -57,6 +57,8 @@ var setEventHandlers = function() {
     socket.on("new player", onNewPlayer);
     socket.on("move player", onMovePlayer);
     socket.on("remove player", onRemovePlayer);
+    socket.on("map chunk", onReceiveMapChunk);
+    socket.on("map update", onMapUpdate);
 };
 
 // Keyboard key down
@@ -112,6 +114,10 @@ function onRemovePlayer(data) {
     remotePlayers.splice(remotePlayers.indexOf(removePlayer), 1);
 };
 
+function onMapUpdate() {};
+
+function onReceiveMapChunk() {};
+
 
 /**************************************************
  ** GAME ANIMATION LOOP
@@ -129,9 +135,10 @@ function animate() {
  ** GAME UPDATE
  **************************************************/
 function update() {
-    if (localPlayer.update(keys)) {
-        socket.emit("move player", { x: localPlayer.getX(), y: localPlayer.getY() });
-    };
+    if (keys.up || keys.down || keys.left || keys.right) {
+        socket.emit("key press", { keys: keys });
+        localPlayer.update(keys);
+    }
 };
 
 
@@ -152,6 +159,10 @@ function draw() {
 };
 
 function playerById(id) {
+    if (localPlayer.id == id) {
+        return localPlayer;
+    }
+
     var i;
     for (i = 0; i < remotePlayers.length; i++) {
         if (remotePlayers[i].id == id)

@@ -57,3 +57,8 @@ var Player = function(startX, startY) {
         setY: setY,
     }
 };
+
+var exports;
+if (exports) {
+    exports.Player = Player;
+}
