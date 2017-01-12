@@ -36,6 +36,7 @@ function init() {
     socket = io.connect(SERVER, { transports: ["websocket"] });
 
     // TODO: communicate with the server to get the map and player location
+    socket.emit("request id");
     var startX = 0;
     var startY = 0;
 
@@ -59,6 +60,7 @@ var setEventHandlers = function() {
     socket.on("remove player", onRemovePlayer);
     socket.on("map chunk", onReceiveMapChunk);
     socket.on("map update", onMapUpdate);
+    socket.on("send id", setId);
 };
 
 // Keyboard key down
@@ -101,6 +103,7 @@ function onMovePlayer(data) {
 
     movePlayer.setX(data.x);
     movePlayer.setY(data.y);
+
 };
 
 function onRemovePlayer(data) {
@@ -113,6 +116,10 @@ function onRemovePlayer(data) {
 
     remotePlayers.splice(remotePlayers.indexOf(removePlayer), 1);
 };
+
+function setId(data) {
+    localPlayer.id = data.id;
+}
 
 function onMapUpdate() {};
 
@@ -137,7 +144,7 @@ function animate() {
 function update() {
     if (keys.up || keys.down || keys.left || keys.right) {
         socket.emit("key press", { keys: keys });
-        localPlayer.update(keys);
+        //localPlayer.update(keys);
     }
 };
 

@@ -7,10 +7,15 @@ var Player = require("./public/js/Player").Player;
 var io;
 var players;
 
+var previousTime;
+
 function init() {
     players = [];
     io = new Server(PORT, { transport: ["websocket"], });
     setEventHandlers();
+
+    previousTime = Date.now();
+    setInterval(timeStep, 50);
 
     console.log("Server started!");
 }
@@ -24,6 +29,7 @@ function onSocketConnection(client) {
     client.on("disconnect", onClientDisconnect);
     client.on("new player", onNewPlayer);
     client.on("key press", onKeyPress);
+    client.on("request id", onRequestId);
 };
 
 function onClientDisconnect() {
@@ -42,7 +48,7 @@ function onClientDisconnect() {
 
 function onNewPlayer(data) {
     // create new player object
-    var newPlayer = new Player(data.x, data.y);
+    var newPlayer = new Player(0, 0); // TODO: start coordinates
     newPlayer.id = this.id;
 
     // send new player to other players
@@ -69,8 +75,12 @@ function onKeyPress(data) {
 
     playerToMove.update(data.keys);
 
-    this.broadcast.emit("move player", { id: playerToMove.id, x: playerToMove.getX(), y: playerToMove.getY() });
+    io.emit("move player", { id: playerToMove.id, x: playerToMove.getX(), y: playerToMove.getY() });
 };
+
+function onRequestId(data) {
+    this.emit("send id", { id: this.id });
+}
 
 function playerById(id) {
     var i;
@@ -81,6 +91,23 @@ function playerById(id) {
 
     return false;
 };
+
+function timeStep() {
+    // update all player positions
+    var currentTime = Date.now();
+    for (var i = 0; i < players.length; i++) {
+        var p = players[i];
+        //util.log("y: " + p.getY());
+        p.step(currentTime - previousTime)
+        if (p.hasUpdated()) {
+            io.emit("move player", { id: p.id, x: p.getX(), y: p.getY() });
+        }
+    }
+    previousTime = currentTime;
+
+    // send all player positions
+
+}
 
 function stop() {
     save();
