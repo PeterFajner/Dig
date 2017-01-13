@@ -3,13 +3,17 @@ var SERVER = "http://localhost:8000";
 var WIDTH = 800;
 var HEIGHT = 600;
 
+var CHUNK_SIZE;
+var BLOCK_SIZE;
+
 // variables
 var canvas; // Canvas DOM element
 var ctx; // Canvas rendering context
 var keys; // Keyboard input
 var localPlayer; // Local player
 var socket;
-var map;
+var chunks;
+var blocks;
 var remotePlayers;
 
 
@@ -19,7 +23,8 @@ function init() {
     ctx = canvas.getContext("2d");
 
     // initialize remote players and the map
-    map = [];
+    chunks = {};
+    blocks = {};
     remotePlayers = [];
 
     // Set canvas size and position
@@ -35,16 +40,25 @@ function init() {
     // connect to the server
     socket = io.connect(SERVER, { transports: ["websocket"] });
 
-    // TODO: communicate with the server to get the map and player location
-    socket.emit("request id");
-    var startX = 0;
-    var startY = 0;
-
-    // Initialise the local player
-    localPlayer = new Player(startX, startY);
-
     // Start listening for events
     setEventHandlers();
+
+    // communicate with the server to get the map
+    socket.emit("request world info");
+
+
+    // get player ID
+    socket.emit("request id");
+
+    // Initialise the local player
+    var startX = 0;
+    var startY = 0;
+    localPlayer = new Player(startX, startY);
+
+    // get nearby world
+    requestNearbyChunks();
+
+
 };
 
 
@@ -58,9 +72,9 @@ var setEventHandlers = function() {
     socket.on("new player", onNewPlayer);
     socket.on("move player", onMovePlayer);
     socket.on("remove player", onRemovePlayer);
-    socket.on("map chunk", onReceiveMapChunk);
-    socket.on("map update", onMapUpdate);
+    socket.on("send chunk", onReceiveMapChunk);
     socket.on("send id", setId);
+    socket.on("send world info", onReceiveWorldInfo);
 };
 
 // Keyboard key down
@@ -121,9 +135,49 @@ function setId(data) {
     localPlayer.id = data.id;
 }
 
-function onMapUpdate() {};
+function onReceiveMapChunk(data) {
+    console.log(data)
+    var chunkX = data.chunk.getX();
+    var chunkY = data.chunk.getY();
+    if (!chunks.chunkX) {
+        chunks.chunkX = {};
+    }
+    chunks.chunkX.chunkY = data.chunk;
 
-function onReceiveMapChunk() {};
+    var cblocks = data.chunk.blocks();
+    for (var x = 0; x < cblocks.length; x++) {
+        for (var y = 0; y < cblocks[x].length; y++) {
+            var b = cblocks[x][y];
+            var globalX = x + chunkX * CHUNK_SIZE;
+            var globalY = y + chunkY * CHUNK_SIZE;
+            if (!blocks[globalX]) {
+                blocks[globalX] = {};
+            }
+            blocks[globalX][globalY] = b;
+        }
+    }
+};
+
+
+
+function onReceiveWorldInfo(data) {
+    CHUNK_SIZE = data.CHUNK_SIZE;
+    BLOCK_SIZE = data.BLOCK_SIZE;
+}
+
+function getPlayerChunkCoords(x, y) {
+    var chunkX = Math.round(x / (CHUNK_SIZE * BLOCK_SIZE));
+    var chunkY = Math.round(y / (CHUNK_SIZE * BLOCK_SIZE));
+    return {
+        chunkX: chunkX,
+        chunkY: chunkY
+    }
+}
+
+function requestNearbyChunks() {
+    var chunkCoords = getPlayerChunkCoords(localPlayer.getX(), localPlayer.getY());
+    socket.emit("request chunk", chunkCoords);
+}
 
 
 /**************************************************
@@ -156,12 +210,27 @@ function draw() {
     // Wipe the canvas clean
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw the local player
-    localPlayer.draw(ctx);
+    var offset = { x: -localPlayer.getX(), y: -localPlayer.getY() };
 
+    // draw world
+    for (var x = 0; x < Math.ceil(canvas.width / BLOCK_SIZE); x++) {
+        for (var y = 0; y < Math.ceil(canvas.height / BLOCK_SIZE); y++) {
+            ctx.fillStyle = "white";
+            try {
+                var block = blocks[x][y];
+                ctx.fillStyle = block.getProps().colour;
+            } catch (err) {}
+            ctx.fillRect(x * BLOCK_SIZE + offset.x, y * BLOCK_SIZE + offset.y, BLOCK_SIZE, BLOCK_SIZE);
+        }
+    }
+
+    // Draw the local player
+    localPlayer.draw(ctx, { x: 0, y: 0 });
+
+    // draw remote players
     var i;
     for (i = 0; i < remotePlayers.length; i++) {
-        remotePlayers[i].draw(ctx);
+        remotePlayers[i].draw(ctx, offset);
     };
 };
 

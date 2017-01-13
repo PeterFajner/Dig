@@ -62,15 +62,12 @@ var Player = function(startX, startY) {
 
         // apply gravity
         vY += gravity * scale;
-        if (Math.abs(vY) > world.BLOCK_SIZE) {
+        if (Math.abs(vY) > world.BLOCK_SIZE()) {
             vY = world.BLOCK_SIZE; // prevents falling through blocks
         }
         y += vY * scale;
         if (world.isCoordFilled(x, y)) {
-            y = world.getNearestEmptyHeight(y);
-        }
-        if (y >= 500) { // temporary
-            y = 500;
+            y = world.getNearestEmptyHeight(x, y);
             vY = 0;
         }
         if (oldX - x != 0 || oldY - y != 0) {
@@ -79,8 +76,8 @@ var Player = function(startX, startY) {
         }
     }
 
-    var draw = function(ctx) {
-        ctx.fillRect(x - 5, y - 5, 10, 10);
+    var draw = function(ctx, offset) {
+        ctx.fillRect(x - 5 + offset.x, y - 5 + offset.y, 10, 10);
     };
 
     var hasUpdated = function() {

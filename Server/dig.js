@@ -13,10 +13,11 @@ var previousTime;
 function init() {
     players = [];
     io = new Server(PORT, { transport: ["websocket"], });
-    setEventHandlers();
 
     // create the world
     world = new World();
+
+    setEventHandlers();
 
     previousTime = Date.now();
     setInterval(timeStep, 50);
@@ -34,6 +35,8 @@ function onSocketConnection(client) {
     client.on("new player", onNewPlayer);
     client.on("key press", onKeyPress);
     client.on("request id", onRequestId);
+    client.on("request chunk", onRequestChunk);
+    client.on("request world info", onRequestWorldInfo);
 };
 
 function onClientDisconnect() {
@@ -86,6 +89,16 @@ function onRequestId(data) {
     this.emit("send id", { id: this.id });
 }
 
+function onRequestChunk(data) {
+    var chunk = world.getChunkFromChunkCoords(data.chunkX, data.chunkY);
+    util.log(chunk);
+    this.emit("send chunk", { chunk: chunk });
+}
+
+function onRequestWorldInfo() {
+    this.emit("send world info", { CHUNK_SIZE: world.CHUNK_SIZE(), BLOCK_SIZE: world.BLOCK_SIZE() });
+}
+
 function playerById(id) {
     var i;
     for (i = 0; i < players.length; i++) {
@@ -97,19 +110,20 @@ function playerById(id) {
 };
 
 function timeStep() {
-    // load chunks as needed
-
     // update and send player positions
     var currentTime = Date.now();
     for (var i = 0; i < players.length; i++) {
         var p = players[i];
-        //util.log("y: " + p.getY());
-        p.step(currentTime - previousTime)
+        p.step(currentTime - previousTime, world)
         if (p.hasUpdated()) {
             io.emit("move player", { id: p.id, x: p.getX(), y: p.getY() });
         }
+
     }
     previousTime = currentTime;
+
+    // ensure visible chunks loaded
+    world.ensureSurroundingsLoaded(players);
 
 }
 
@@ -118,10 +132,6 @@ function stop() {
 }
 
 function save() {
-
-}
-
-function resendPositions() {
 
 }
 
