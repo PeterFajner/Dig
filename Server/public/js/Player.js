@@ -28,7 +28,7 @@ var Player = function(startX, startY) {
         y = newY;
     };
 
-    var update = function(keys) {
+    var update = function(keys, world) {
         var prevX = x;
         var prevY = y;
 
@@ -54,7 +54,7 @@ var Player = function(startX, startY) {
         } else return false;
     };
 
-    var step = function(timeDelta) {
+    var step = function(timeDelta, world) {
         var scale = timeDelta * timeScale;
 
         var oldX = x;
@@ -62,7 +62,13 @@ var Player = function(startX, startY) {
 
         // apply gravity
         vY += gravity * scale;
+        if (Math.abs(vY) > world.BLOCK_SIZE) {
+            vY = world.BLOCK_SIZE; // prevents falling through blocks
+        }
         y += vY * scale;
+        if (world.isCoordFilled(x, y)) {
+            y = world.getNearestEmptyHeight(y);
+        }
         if (y >= 500) { // temporary
             y = 500;
             vY = 0;

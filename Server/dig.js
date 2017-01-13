@@ -3,16 +3,20 @@ var PORT = 8000;
 var util = require("util");
 var Server = require("socket.io");
 var Player = require("./public/js/Player").Player;
+var World = require("./public/js/World").World;
 
 var io;
 var players;
-
+var world;
 var previousTime;
 
 function init() {
     players = [];
     io = new Server(PORT, { transport: ["websocket"], });
     setEventHandlers();
+
+    // create the world
+    world = new World();
 
     previousTime = Date.now();
     setInterval(timeStep, 50);
@@ -93,7 +97,9 @@ function playerById(id) {
 };
 
 function timeStep() {
-    // update all player positions
+    // load chunks as needed
+
+    // update and send player positions
     var currentTime = Date.now();
     for (var i = 0; i < players.length; i++) {
         var p = players[i];
@@ -104,8 +110,6 @@ function timeStep() {
         }
     }
     previousTime = currentTime;
-
-    // send all player positions
 
 }
 
